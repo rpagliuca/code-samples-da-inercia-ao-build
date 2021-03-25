@@ -15,13 +15,19 @@ func main() {
 
 	// Moving objects (circles)
 	movingObjects := []Circle{
-		{Point{0.5, 0.5}, 0.01, Point{0.0, 0.0}},
+		{Point{0.5, 0.5}, 0.01, Point{0.2, 0.0}},
 	}
 
 	// Fixed objects (lines)
 	fixedObjects := []Line{
 		// Floor
 		{Point{0.0, 0.0}, Point{1.0, 0.0}},
+		// Right wall
+		{Point{1.0, 0.0}, Point{1.0, 1.0}},
+		// Left wall
+		{Point{0.0, 0.0}, Point{0.0, 1.0}},
+		// Middle diagonal wall
+		{Point{0.2, 0.2}, Point{0.5, 0.8}},
 	}
 
 	count := 0
@@ -42,82 +48,47 @@ func next(movingObjects []Circle, fixedObjects []Line) []Circle {
 	for i := range movingObjects {
 		movingObjects[i].Velocity.Y = movingObjects[i].Velocity.Y - 0.1*deltaT.Seconds()
 		movingObjects[i].Position.Y = movingObjects[i].Position.Y + movingObjects[i].Velocity.Y*deltaT.Seconds()
+		movingObjects[i].Position.X = movingObjects[i].Position.X + movingObjects[i].Velocity.X*deltaT.Seconds()
 
 		movement := Line{movingObjects[i].Position, previousMovingObjects[i].Position}
 
 		for _, line := range fixedObjects {
-			intersected := doLinesIntersect(movement, line)
-			fmt.Println(intersected)
+			intersected := intersect(
+				movement.Position1.X,
+				movement.Position1.Y,
+				movement.Position2.X,
+				movement.Position2.Y,
+				line.Position1.X,
+				line.Position1.Y,
+				line.Position2.X,
+				line.Position2.Y,
+			)
 			if intersected {
-				movingObjects[i].Position.Y = previousMovingObjects[i].Position.Y
-				movingObjects[i].Velocity.Y = -movingObjects[i].Velocity.Y
+				_, _, x, y := normal(line.Position1.X, line.Position1.Y, line.Position2.X, line.Position2.Y)
+				fmt.Println("x, y", x, y)
+				velX := movingObjects[i].Velocity.X * x
+				velY := movingObjects[i].Velocity.Y * y
+				fmt.Println("1) velox, veloy", movingObjects[i].Velocity.X, movingObjects[i].Velocity.Y)
+				fmt.Println("vx, vy", velX, velY)
+				if movingObjects[i].Velocity.Y > 0 {
+					movingObjects[i].Velocity.Y -= 2.0 * math.Abs(velY)
+				} else {
+					movingObjects[i].Velocity.Y += 2.0 * math.Abs(velY)
+				}
+				if movingObjects[i].Velocity.X > 0 {
+					movingObjects[i].Velocity.X -= 2.0 * math.Abs(velX)
+				} else {
+					movingObjects[i].Velocity.X += 2.0 * math.Abs(velX)
+				}
+				fmt.Println("2) velox, veloy", movingObjects[i].Velocity.X, movingObjects[i].Velocity.Y)
+				movingObjects[i].Position.Y = previousMovingObjects[i].Position.Y + movingObjects[i].Velocity.Y*deltaT.Seconds()
+				movingObjects[i].Position.X = previousMovingObjects[i].Position.X + movingObjects[i].Velocity.X*deltaT.Seconds()
 			}
 		}
 
-		fmt.Println(movement)
-
-		if movingObjects[i].Position.Y < 0 {
-			panic("já foi")
-		}
-
+		fmt.Println(movement.Position2.X, movement.Position2.Y)
 	}
 	return movingObjects
-}
-
-func rotate45Deg(line Line) Line {
-	theta := math.Pi / 4
-	x1 := line.Position1.X
-	y1 := line.Position1.Y
-	x2 := line.Position2.X
-	y2 := line.Position2.Y
-	return Line{
-		Point{x1*math.Cos(theta) - y1*math.Sin(theta), x1*math.Sin(theta) + y1*math.Cos(theta)},
-		Point{x2*math.Cos(theta) - y2*math.Sin(theta), x2*math.Sin(theta) + y2*math.Cos(theta)},
-	}
-}
-
-func doLinesIntersect(line1, line2 Line) bool {
-	for line1.Position2.X-line1.Position1.X == 0 || line2.Position2.X-line2.Position1.X == 0 {
-		fmt.Println("rotating!")
-		line1 = rotate45Deg(line1)
-		fmt.Println("l1", line1)
-		line2 = rotate45Deg(line2)
-		fmt.Println("l2", line2)
-	}
-
-	a1 := math.Abs((line1.Position2.Y - line1.Position1.Y) / (line1.Position2.X - line1.Position1.X))
-	a2 := math.Abs((line2.Position2.Y - line2.Position1.Y) / (line2.Position2.X - line2.Position1.X))
-	fmt.Println("a1, a2", a1, a2)
-
-	if a1 == a2 {
-		// They are parallel, so do not intersect
-		return false
-	}
-
-	// y = ax + b
-	// b = y - ax
-	b1 := line1.Position1.Y - a1*line1.Position1.X
-	b2 := line2.Position1.Y - a2*line2.Position1.X
-	fmt.Println("b1, b2", b1, b2)
-
-	// Where do they intersect?
-	// y1 == y2, x1 == x2
-	// y = a1x + b1
-	// y = a2x + b2
-	// => a1x + b1 = a2x + b2
-	// => x (a1 - a2) = (b2 - b1)
-	// => x = (b2 - b1) / (a1 - a2)
-
-	x := (b2 - b1) / (a1 - a2)
-
-	if ((x >= line1.Position1.X && x <= line1.Position2.X) ||
-		(x <= line1.Position1.X && x >= line1.Position2.X)) &&
-		((x >= line2.Position1.X && x <= line2.Position2.X) ||
-			(x <= line2.Position1.X && x >= line2.Position2.X)) {
-		return true
-	}
-
-	return false
 }
 
 type Radius float64

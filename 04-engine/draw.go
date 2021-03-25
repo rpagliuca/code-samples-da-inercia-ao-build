@@ -15,13 +15,6 @@ func draw(frameId int, circles []Circle, lines []Line) {
 	dc.SetRGB(0.1, 0.1, 0.1)
 	dc.Fill()
 
-	// Draw blue circles
-	for _, c := range circles {
-		dc.DrawCircle(c.Position.X*scale, (1.0-c.Position.Y)*scale, c.Radius*scale)
-		dc.SetRGB(0, 1, 0)
-		dc.Fill()
-	}
-
 	// Draw pink lines
 	for _, l := range lines {
 		dc.DrawLine(
@@ -34,5 +27,13 @@ func draw(frameId int, circles []Circle, lines []Line) {
 		dc.SetLineWidth(20)
 		dc.Stroke()
 	}
+
+	// Draw blue circles
+	for _, c := range circles {
+		dc.DrawCircle(c.Position.X*scale, (1.0-c.Position.Y)*scale, c.Radius*scale)
+		dc.SetRGB(0, 1, 0)
+		dc.Fill()
+	}
+
 	dc.SavePNG(fmt.Sprintf("out/%05d.png", frameId))
 }
